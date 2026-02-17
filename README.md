@@ -47,9 +47,27 @@ DELETE /mcp             → 终止会话
 GET  /health            → 健康检查（不走 MCP 协议）
 ```
 
-## 客户端配置
+## 在新电脑上使用（客户端配置教程）
 
-在 `~/.claude/settings.json` 中添加全局 MCP 连接（对所有项目生效）：
+在任何一台电脑上，只需 **一步配置** 即可让 Claude Code 连接到本 MCP 文档服务。
+
+### 第 1 步：找到配置文件
+
+Claude Code 的全局配置文件位于：
+
+| 操作系统 | 路径 |
+|---------|------|
+| macOS | `~/.claude/settings.json` |
+| Linux | `~/.claude/settings.json` |
+| Windows | `%USERPROFILE%\.claude\settings.json` |
+
+如果文件或目录不存在，手动创建即可。
+
+### 第 2 步：编辑配置
+
+**情况 A：文件不存在或为空**
+
+直接写入以下内容：
 
 ```json
 {
@@ -62,7 +80,75 @@ GET  /health            → 健康检查（不走 MCP 协议）
 }
 ```
 
-配置后需重启 Claude Code 会话才能生效。
+**情况 B：文件已有其他配置**
+
+在现有的 `mcpServers` 对象中追加 `api-docs` 条目。如果之前没有 `mcpServers` 字段，新增即可：
+
+```json
+{
+  "permissions": {},
+  "mcpServers": {
+    "existing-server": {},
+    "api-docs": {
+      "type": "streamable-http",
+      "url": "https://mcp.zixuan.net/mcp"
+    }
+  }
+}
+```
+
+### 第 3 步：重启 Claude Code
+
+配置修改后，需要 **完全退出并重新打开** Claude Code 会话才能加载新的 MCP 连接。
+
+- **VSCode 插件**：关闭当前 Claude Code 面板，重新打开
+- **CLI 终端**：退出当前会话（Ctrl+C），重新运行 `claude`
+
+### 第 4 步：验证连接
+
+在 Claude Code 中输入 `/mcp` 查看 MCP 状态，应能看到：
+
+- 服务名：`api-docs`
+- 状态：connected
+- 工具：`list_docs`、`read_doc`、`search_docs`
+
+也可以直接让 Claude 调用工具来验证：
+
+> 请用 list_docs 工具列出所有可用的文档
+
+### 快速配置命令（一键复制）
+
+如果你习惯命令行，在新电脑上执行一行命令即可：
+
+**macOS / Linux：**
+
+```bash
+mkdir -p ~/.claude && echo '{"mcpServers":{"api-docs":{"type":"streamable-http","url":"https://mcp.zixuan.net/mcp"}}}' > ~/.claude/settings.json
+```
+
+> 注意：如果 `~/.claude/settings.json` 已有内容，此命令会覆盖。已有配置请手动编辑合并。
+
+**Windows (PowerShell)：**
+
+```powershell
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.claude" | Out-Null; '{"mcpServers":{"api-docs":{"type":"streamable-http","url":"https://mcp.zixuan.net/mcp"}}}' | Set-Content "$env:USERPROFILE\.claude\settings.json"
+```
+
+### 连接前提
+
+- 电脑需要能访问公网（HTTPS 443 端口出站）
+- MCP 服务端地址：`https://mcp.zixuan.net/mcp`
+- 健康检查地址：`https://mcp.zixuan.net/health`（浏览器可直接打开验证）
+
+### 常见问题
+
+| 问题 | 解决方案 |
+|------|---------|
+| MCP 状态显示 disconnected | 浏览器打开 `https://mcp.zixuan.net/health` 检查服务是否正常 |
+| 工具调用超时 | 确认当前网络未拦截 443 端口出站请求 |
+| 提示 unknown server | 确认 JSON 格式正确，`mcpServers` 拼写无误 |
+| 配置后没有变化 | 必须完全重启 Claude Code 会话，仅新建对话不够 |
+| Windows 路径找不到 | 确认路径为 `%USERPROFILE%\.claude\`，不是 `%APPDATA%` |
 
 ## 文档维护
 
